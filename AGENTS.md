@@ -4,6 +4,7 @@ Welcome to `agy-swarm`, a portable multi-agent orchestration boilerplate and rul
 
 ## Architectural Guidelines & Repo Map
 - Consult [ARCHITECTURE.md](file:///home/mbrandt/github/mbrandt85/agy-swarm/ARCHITECTURE.md) (< 40 lines) for structural boundaries, module roles, and primary entrypoints before crawling directories.
+- Maintain [PROJECT.md](file:///home/mbrandt/github/mbrandt85/agy-swarm/PROJECT.md) as the living milestone registry and feature inventory during swarm orchestration.
 - Review [docs/adr/](file:///home/mbrandt/github/mbrandt85/agy-swarm/docs/adr/) for recorded architecture decisions.
 
 ## Subagent Swarm Roles & Model Tiering

@@ -6,13 +6,17 @@ echo "🧪 Running agy-swarm test suite..."
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_DIR"
 
-# 1. Architecture Map Line Count Verification (< 40 lines)
+# 1. Architecture Map Line Count Verification (< 40 lines) & PROJECT.md
 ARCH_LINES=$(wc -l < ARCHITECTURE.md | tr -d ' ')
 if [ "$ARCH_LINES" -ge 40 ]; then
     echo "ARCHITECTURE.md:1: error: ARCHITECTURE.md exceeds 40 lines ($ARCH_LINES lines found)"
     exit 1
 fi
-echo "  ✓ ARCHITECTURE.md line count check passed ($ARCH_LINES lines < 40)"
+[ -f PROJECT.md ] || {
+    echo "PROJECT.md:1: error: Missing PROJECT.md template"
+    exit 1
+}
+echo "  ✓ ARCHITECTURE.md line count check passed ($ARCH_LINES lines < 40) and PROJECT.md present"
 
 # 2. JSON Validation
 for json_file in .agents/hooks.json; do
@@ -132,6 +136,7 @@ BOOTSTRAP_TMP=$(mktemp -d)
     [ -f .antigravityignore ] || exit 1
     [ -f ARCHITECTURE.md ] || exit 1
     [ -f AGENTS.md ] || exit 1
+    [ -f PROJECT.md ] || exit 1
     [ -f .agents/hooks.json ] || exit 1
     [ -f .agents/rules/01-caveman-efficiency.md ] || exit 1
     [ -f .agents/agents/investigator.md ] || exit 1

@@ -22,6 +22,7 @@ Organizes all customizations natively discovered by the Antigravity CLI:
 - `.agents/agents/`: Specialized subagent role templates.
 - `.agents/hooks.json`: Lifecycle automation hooks.
 - `AGENTS.md`: Root-level agent directives and invariants.
+- `PROJECT.md`: Living milestone registry and feature inventory for teamwork orchestration.
 
 ### 3. Deterministic Lifecycle Hooks (`.agents/hooks.json`)
 Configures deterministic automation on the `PostToolUse` lifecycle event for file-writing tools (`write_to_file`, `replace_file_content`, etc.). Automatically executes `scripts/agy-lint-runner.sh` after file writes, guaranteeing consistent code formatting without wasting agent reasoning tokens.
@@ -32,8 +33,8 @@ Provides specialized role templates in `.agents/agents/`:
 - **Tester (`flash`)**: Runner-only verification specialist (`run_command`, `view_file`). Executes tests and inspects traces without authoring capabilities.
 - **Coder (`pro`)**: Implementation specialist with full authoring tools (`write_to_file`, `replace_file_content`, `run_command`). Employs high-tier reasoning for surgical diffs and unit test authoring.
 
-### 5. Compact Architecture Map (`ARCHITECTURE.md`)
-Maintains a standardized, concise repo map under 40 lines. Clearly delineates module boundaries, directory roles, and execution entry points so agents avoid broad recursive directory crawling.
+### 5. Compact Architecture Map & Living Project Plan (`ARCHITECTURE.md` & `PROJECT.md`)
+Maintains a standardized, concise repo map under 40 lines (`ARCHITECTURE.md`) clearly delineating module boundaries and execution entry points to eliminate directory crawling, alongside a living project plan (`PROJECT.md`) tracking feature inventories, milestones, and interface contracts.
 
 ### 6. Structured Test & Lint Runners
 - **`scripts/agy-test-runner.sh`**: Auto-detects project testing environments (Cargo, Go, npm/pnpm, pytest, make, ctest). On failure, parses output into machine-readable format (`FILE:LINE: REASON`) with a compact stack trace under 40 lines.

@@ -20,9 +20,10 @@ echo "  ↳ Installing .antigravityignore..."
 curl -sL "${BASE_URL}/.antigravityignore" -o .antigravityignore
 
 # 3. Download architecture map and agent guides
-echo "  ↳ Installing ARCHITECTURE.md and AGENTS.md..."
+echo "  ↳ Installing ARCHITECTURE.md, AGENTS.md, and PROJECT.md..."
 curl -sL "${BASE_URL}/ARCHITECTURE.md" -o ARCHITECTURE.md
 curl -sL "${BASE_URL}/AGENTS.md" -o AGENTS.md
+curl -sL "${BASE_URL}/PROJECT.md" -o PROJECT.md
 
 # 4. Download deterministic lifecycle hooks
 echo "  ↳ Installing .agents/hooks.json..."
@@ -70,5 +71,5 @@ echo ""
 echo "✅ Antigravity Swarm blueprint installed successfully!"
 echo "   - Customizations: .agents/ (rules, skills, agents, hooks.json)"
 echo "   - Token Guards:   .antigravityignore (< 40 line traces)"
-echo "   - Architecture:   ARCHITECTURE.md (< 40 lines), AGENTS.md"
+echo "   - Architecture:   ARCHITECTURE.md (< 40 lines), AGENTS.md, PROJECT.md"
 echo "   - Automation:     scripts/agy-test-runner.sh, scripts/agy-lint-runner.sh"
