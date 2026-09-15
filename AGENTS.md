@@ -26,7 +26,14 @@ All agents must adhere to the rules in `.agents/rules/`:
 5. **05-git-workflow.md**: Work in feature/fix branches; use Conventional Commits.
 6. **06-qa-gates.md**: Verify changes with `scripts/agy-lint-runner.sh` and `scripts/agy-test-runner.sh`.
 
+## Progress Tracking
+Swarm agents MUST maintain `progress.md` at the repo root using the schema defined in `.agents/templates/progress.md`.
+- Keep all content inside the defined sections; no freeform prose outside section headers.
+- Update `progress.md` at the start and end of every agent session.
+- The file must remain machine-readable: one concept per line, no nested markdown outside section bodies.
+
 ## Verification Gates
 Before finishing any task:
 1. Run `scripts/agy-lint-runner.sh` (must return exit code 0).
 2. Run `scripts/agy-test-runner.sh` (must return exit code 0; outputs structured `FILE:LINE: REASON` on failure).
+3. Ensure `progress.md` is up to date with current phase, active agents, completed items, blockers, and ETA.

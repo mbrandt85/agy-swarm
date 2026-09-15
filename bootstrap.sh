@@ -12,6 +12,7 @@ echo "🚀 Bootstrapping Antigravity Swarm blueprint into $(pwd)..."
 mkdir -p .agents/rules \
          .agents/skills/template-skill \
          .agents/agents \
+         .agents/templates \
          docs/adr \
          scripts
 
@@ -24,6 +25,7 @@ echo "  ↳ Installing ARCHITECTURE.md, AGENTS.md, and PROJECT.md..."
 curl -sL "${BASE_URL}/ARCHITECTURE.md" -o ARCHITECTURE.md
 curl -sL "${BASE_URL}/AGENTS.md" -o AGENTS.md
 curl -sL "${BASE_URL}/PROJECT.md" -o PROJECT.md
+curl -sL "${BASE_URL}/.agents/templates/progress.md" -o .agents/templates/progress.md
 
 # 4. Download deterministic lifecycle hooks
 echo "  ↳ Installing .agents/hooks.json..."

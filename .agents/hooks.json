@@ -12,5 +12,19 @@
         ]
       }
     ]
+  },
+  "auto-commit-on-green-tests": {
+    "PostToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '\nINPUT=$(cat 2>/dev/null || true)\nCMD=\"${TOOL_INPUT:-}\"\n[ -z \"$CMD\" ] && CMD=$(echo \"$INPUT\" | grep -o \"\\\"CommandLine\\\":\\\"[^\\\"]*\\\"\" || true)\necho \"$CMD\" | grep -q \"agy-test-runner.sh\" || { printf \"{}\"; exit 0; }\nERR=\"${TOOL_ERROR:-}\"\n[ -z \"$ERR\" ] && ERR=$(echo \"$INPUT\" | grep -o \"\\\"error\\\":\\\"[^\\\"]*\\\"\" | grep -v \"\\\"error\\\":\\\"\\\"\" || true)\n[ -n \"$ERR\" ] && { printf \"{}\"; exit 0; }\nif [ -n \"${TOOL_OUTPUT:-}\" ]; then\n  echo \"$TOOL_OUTPUT\" | grep -q -E \"\\\"exit_code\\\":[1-9]|exit status [1-9]\" && { printf \"{}\"; exit 0; }\nfi\nROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)\ncd \"$ROOT\"\ngit add -A\nif ! git diff --cached --quiet; then\n  git commit -m \"chore: auto-commit after green test gate\" >/dev/null 2>&1 || true\nfi\nprintf \"{}\"\nexit 0\n'",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
   }
 }

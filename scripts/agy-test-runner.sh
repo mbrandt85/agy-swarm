@@ -16,6 +16,38 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# ============================================================
+# SHA Cache: skip full suite when nothing has changed since
+# the last green run.  Cache file is .agy-test-cache (repo root).
+# ============================================================
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+CACHE_FILE="$REPO_ROOT/.agy-test-cache"
+
+_compute_sha() {
+    if git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        {
+            git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null
+            git -C "$REPO_ROOT" status --porcelain 2>/dev/null
+            git -C "$REPO_ROOT" diff HEAD 2>/dev/null
+            git -C "$REPO_ROOT" ls-files --others --exclude-standard 2>/dev/null | while IFS= read -r f; do
+                [ -f "$REPO_ROOT/$f" ] && sha256sum "$REPO_ROOT/$f" 2>/dev/null
+            done
+        } | sha256sum | awk '{print $1}'
+    else
+        find "$REPO_ROOT" -maxdepth 4 -type f -not -path '*/.*' -not -name '.agy-test-cache' -exec sha256sum {} + 2>/dev/null | sort | sha256sum | awk '{print $1}'
+    fi
+}
+
+CURRENT_SHA=$(_compute_sha)
+
+if [ -f "$CACHE_FILE" ]; then
+    CACHED_SHA=$(cat "$CACHE_FILE")
+    if [ "$CURRENT_SHA" = "$CACHED_SHA" ]; then
+        echo "[SKIP] No changes detected since last green run. Skipping full test suite."
+        exit 0
+    fi
+fi
+
 echo "🔍 Detecting environment and running tests..."
 
 if [ -f "pnpm-workspace.yaml" ]; then
@@ -45,6 +77,8 @@ else
 fi
 
 if [ $EXIT_CODE -eq 0 ]; then
+    # Write/update cache on green run
+    echo "$CURRENT_SHA" > "$CACHE_FILE"
     if [ "$VERBOSE" = true ]; then
         cat "$LOG_FILE"
     else
@@ -52,6 +86,7 @@ if [ $EXIT_CODE -eq 0 ]; then
     fi
     exit 0
 fi
+
 
 # ============================================================
 # Failure Handling & Structured Extraction (FILE:LINE: REASON)

@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
+# Guard against infinite recursion when testing cache runner inside test suite
+if [ "${AGY_TEST_NESTED:-0}" = "1" ]; then
+    exit 0
+fi
+
 echo "🧪 Running agy-swarm test suite..."
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -149,6 +154,57 @@ BOOTSTRAP_TMP=$(mktemp -d)
 }
 rm -rf "$BOOTSTRAP_TMP"
 echo "  ✓ bootstrap.sh end-to-end installation verified"
+
+# 8. Test SHA cache: write then skip
+CACHE_TMP=$(mktemp -d)
+(
+    cp -r "$REPO_DIR/." "$CACHE_TMP/"
+    cd "$CACHE_TMP"
+    # Remove any stale cache to ensure first run writes one
+    rm -f .agy-test-cache
+    # First run — must succeed and write the cache file
+    AGY_TEST_NESTED=1 bash scripts/agy-test-runner.sh > /dev/null 2>&1
+    [ -f .agy-test-cache ] || { echo "tests/test_runners.sh:1: error: Cache file not written after green run"; exit 1; }
+    # Second run — SHA unchanged — must print [SKIP] and exit 0
+    OUTPUT=$(AGY_TEST_NESTED=1 bash scripts/agy-test-runner.sh 2>&1)
+    echo "$OUTPUT" | grep -q "\[SKIP\]" || { echo "tests/test_runners.sh:1: error: Cache skip not triggered on unchanged tree"; exit 1; }
+)
+EXIT_CACHE=$?
+rm -rf "$CACHE_TMP"
+[ $EXIT_CACHE -eq 0 ] || exit 1
+echo "  ✓ SHA cache write and skip behaviour verified"
+
+# 9. Verify .agy-test-cache is listed in .antigravityignore and .gitignore
+grep -q "\.agy-test-cache" "$REPO_DIR/.antigravityignore" || {
+    echo ".antigravityignore:1: error: .agy-test-cache not listed in .antigravityignore"
+    exit 1
+}
+grep -q "\.agy-test-cache" "$REPO_DIR/.gitignore" || {
+    echo ".gitignore:1: error: .agy-test-cache not listed in .gitignore"
+    exit 1
+}
+echo "  ✓ .agy-test-cache present in .antigravityignore and .gitignore"
+
+# 10. Verify progress.md template exists with required sections
+PROGRESS_TMPL="$REPO_DIR/.agents/templates/progress.md"
+[ -f "$PROGRESS_TMPL" ] || {
+    echo ".agents/templates/progress.md:1: error: Progress template file missing"
+    exit 1
+}
+for section in "## Phase" "## Active Agents" "## Completed" "## Blockers" "## ETA"; do
+    grep -qF "$section" "$PROGRESS_TMPL" || {
+        echo ".agents/templates/progress.md:1: error: Missing section '$section'"
+        exit 1
+    }
+done
+echo "  ✓ progress.md template exists with all required sections"
+
+# 11. Verify hooks.json contains auto-commit-on-green-tests hook
+grep -q "auto-commit-on-green-tests" "$REPO_DIR/.agents/hooks.json" || {
+    echo ".agents/hooks.json:1: error: auto-commit-on-green-tests hook missing"
+    exit 1
+}
+echo "  ✓ auto-commit-on-green-tests hook present in hooks.json"
 
 echo "🎉 All test checks passed successfully!"
 
