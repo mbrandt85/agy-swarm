@@ -252,7 +252,7 @@ HOOK_TMP=$(mktemp -d)
 
     # 12a: Green run commits pending changes and prints {}
     echo "hook commit test" > hook_test.txt
-    OUT1=$(echo '{"toolCall":{"name":"run_command","args":{"CommandLine":"bash scripts/agy-test-runner.sh"}},"stepIdx":1}' | sh -c "$HOOK_CMD")
+    OUT1=$(echo '{"toolCall":{"name":"run_command","args":{"CommandLine":"bash scripts/agy-test-runner.sh"}},"stepIdx":1}' | eval "$HOOK_CMD")
     [ "$OUT1" = "{}" ] || { echo "tests/test_runners.sh:1: error: Hook stdout was not '{}': $OUT1"; exit 1; }
     if git status --porcelain | grep -q "hook_test.txt"; then
         echo "tests/test_runners.sh:1: error: Pending changes not committed by hook"
@@ -265,7 +265,7 @@ HOOK_TMP=$(mktemp -d)
 
     # 12b: Failed run with error field must NOT commit
     echo "fail test 1" > fail_test.txt
-    OUT2=$(echo '{"toolCall":{"name":"run_command","args":{"CommandLine":"bash scripts/agy-test-runner.sh"}},"error":"exit status 1"}' | sh -c "$HOOK_CMD")
+    OUT2=$(echo '{"toolCall":{"name":"run_command","args":{"CommandLine":"bash scripts/agy-test-runner.sh"}},"error":"exit status 1"}' | eval "$HOOK_CMD")
     [ "$OUT2" = "{}" ] || { echo "tests/test_runners.sh:1: error: Hook stdout on failure was not '{}': $OUT2"; exit 1; }
     if ! git status --porcelain | grep -q "fail_test.txt"; then
         echo "tests/test_runners.sh:1: error: Hook committed on error field"
@@ -273,7 +273,7 @@ HOOK_TMP=$(mktemp -d)
     fi
 
     # 12c: Failed run with non-zero exit code in content must NOT commit
-    OUT3=$(echo '{"toolCall":{"name":"run_command","args":{"CommandLine":"bash scripts/agy-test-runner.sh"}},"content":"The command exited with code 1."}' | sh -c "$HOOK_CMD")
+    OUT3=$(echo '{"toolCall":{"name":"run_command","args":{"CommandLine":"bash scripts/agy-test-runner.sh"}},"content":"The command exited with code 1."}' | eval "$HOOK_CMD")
     [ "$OUT3" = "{}" ] || { echo "tests/test_runners.sh:1: error: Hook stdout on non-zero exit was not '{}': $OUT3"; exit 1; }
     if ! git status --porcelain | grep -q "fail_test.txt"; then
         echo "tests/test_runners.sh:1: error: Hook committed on exit code 1"
@@ -281,7 +281,7 @@ HOOK_TMP=$(mktemp -d)
     fi
 
     # 12d: Unrelated command must NOT commit
-    OUT4=$(echo '{"toolCall":{"name":"run_command","args":{"CommandLine":"make lint"}},"stepIdx":2}' | sh -c "$HOOK_CMD")
+    OUT4=$(echo '{"toolCall":{"name":"run_command","args":{"CommandLine":"make lint"}},"stepIdx":2}' | eval "$HOOK_CMD")
     [ "$OUT4" = "{}" ] || { echo "tests/test_runners.sh:1: error: Hook stdout on unrelated command was not '{}': $OUT4"; exit 1; }
     if ! git status --porcelain | grep -q "fail_test.txt"; then
         echo "tests/test_runners.sh:1: error: Hook committed on unrelated command"
