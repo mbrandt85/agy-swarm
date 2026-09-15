@@ -1,46 +1,137 @@
-# Antigravity CLI Swarm Blueprint
+# Antigravity CLI Swarm Blueprint (`agy-swarm`)
 
-A portable, token-optimized multi-agent orchestration boilerplate and ruleset designed natively for **Google Antigravity CLI**.
+> **A portable, token-optimized multi-agent orchestration boilerplate and ruleset for Google Antigravity CLI.**  
+> *Transform any codebase into an autonomous, model-tiered multi-agent workspace with deterministic quality gates and living sprint planning.*
 
-## Quick Bootstrap
+---
 
-Run this command inside any target repository to install the blueprint:
+## ⚡ The Problem: Why Swarms Need Guardrails
+
+Standard AI coding agents left to themselves quickly exhaust context windows, inflate API costs, and enter trial-and-error spirals:
+1. **Context Flooding**: Agents greedily ingest 50,000-line lockfiles, minified bundles, vector assets, and snapshots into their working memory.
+2. **Model Overkill**: Expensive frontier reasoning models (`Pro`) are wasted performing mechanical greps, file searches, and lint checks.
+3. **Log Churning & Hallucination**: Unparsed test runners dump 3,000 lines of terminal stack traces into context, causing agents to blindly churn fixes across multiple turns.
+4. **Wasted Reasoning on Formatting**: Agents spend tool calls and tokens manually re-reading files to verify indentation, trailing commas, or syntax rules.
+
+`agy-swarm` solves this by enforcing **least-privilege model tiering**, **aggressive ignore boundaries**, **deterministic lifecycle hooks**, and **structured QA gates** right out of the box.
+
+---
+
+## 🏗️ Swarm Architecture & Workflow
+
+```text
+                     User Request / Sprint Goal
+                                 │
+                                 ▼
+                     Project Orchestrator
+                (PROJECT.md & ARCHITECTURE.md)
+                                 │
+         ┌───────────────────────┼───────────────────────┐
+         ▼                       ▼                       ▼
+   Investigator                Coder                   Tester
+  [Flash / Read-Only]     [Pro / Authoring]     [Flash / Runner-Only]
+  • Pinpoint search       • High-tier reasoning • Executes test runners
+  • Gathers references    • Surgical code diffs • Structured failure parsing
+  • Maps dependencies     • Unit test authoring • Fast pass/fail gates
+                                 │
+                                 ▼
+                         PostToolUse Hook
+                  (Deterministic Auto-Formatting)
+```
+
+---
+
+## 🚀 Quick Bootstrap
+
+### 1. Install into Any Target Repository
+Run the zero-touch bootstrap script in your project root:
 
 ```bash
 curl -sL https://raw.githubusercontent.com/mbrandt85/agy-swarm/main/bootstrap.sh | bash
 ```
 
-## Core Features & Architecture
+### 2. Start an Autonomous Swarm Session
+Launch the Antigravity CLI:
 
-### 1. Token-Guard Ignore Protection (`.antigravityignore`)
-Aggressively excludes lockfiles (`package-lock.json`, `pnpm-lock.yaml`, `Cargo.lock`, `go.sum`), heavy binary and vector assets (`*.svg`, images, video), minified code, test fixtures, and build artifacts. Prevents accidental ingestion of massive dependency trees into the agent context window.
+```bash
+agy
+```
 
-### 2. Native Customization Hierarchy (`.agents/`)
-Organizes all customizations natively discovered by the Antigravity CLI:
-- `.agents/rules/`: Core operational and governance rules.
-- `.agents/skills/`: Domain-specific skill blueprints.
-- `.agents/agents/`: Specialized subagent role templates.
-- `.agents/hooks.json`: Lifecycle automation hooks.
-- `AGENTS.md`: Root-level agent directives and invariants.
-- `PROJECT.md`: Living milestone registry and feature inventory for teamwork orchestration.
+Inside Antigravity, trigger multi-agent orchestration:
+- `/teamwork-preview` — Deploy autonomous orchestrator and subagent teams against [`PROJECT.md`](PROJECT.md).
+- `/boost` — Engage deep reasoning with multi-perspective verification and QA gates.
+- `/plan` — Generate step-by-step milestone decomposition prior to coding.
 
-### 3. Deterministic Lifecycle Hooks (`.agents/hooks.json`)
-Configures deterministic automation on the `PostToolUse` lifecycle event for file-writing tools (`write_to_file`, `replace_file_content`, etc.). Automatically executes `scripts/agy-lint-runner.sh` after file writes, guaranteeing consistent code formatting without wasting agent reasoning tokens.
+---
 
-### 4. Model Tiering & Least-Privilege Subagent Swarm
-Provides specialized role templates in `.agents/agents/`:
-- **Investigator (`flash`)**: Read-only codebase explorer (`view_file`, `list_dir`, `grep_search`, `find_by_name`). Gathers context and maps dependencies without modification privileges.
-- **Tester (`flash`)**: Runner-only verification specialist (`run_command`, `view_file`). Executes tests and inspects traces without authoring capabilities.
-- **Coder (`pro`)**: Implementation specialist with full authoring tools (`write_to_file`, `replace_file_content`, `run_command`). Employs high-tier reasoning for surgical diffs and unit test authoring.
+## 🧩 Core Capabilities
 
-### 5. Compact Architecture Map & Living Project Plan (`ARCHITECTURE.md` & `PROJECT.md`)
-Maintains a standardized, concise repo map under 40 lines (`ARCHITECTURE.md`) clearly delineating module boundaries and execution entry points to eliminate directory crawling, alongside a living project plan (`PROJECT.md`) tracking feature inventories, milestones, and interface contracts.
+### 1. Model Tiering & Least-Privilege Subagents (`.agents/agents/`)
+Each subagent is provisioned with strictly scoped tools and optimal model tiers:
 
-### 6. Structured Test & Lint Runners
-- **`scripts/agy-test-runner.sh`**: Auto-detects project testing environments (Cargo, Go, npm/pnpm, pytest, make, ctest). On failure, parses output into machine-readable format (`FILE:LINE: REASON`) with a compact stack trace under 40 lines.
-- **`scripts/agy-lint-runner.sh`**: Deterministically triggers formatters (prettier, cargo fmt, gofmt, ruff, black, shfmt) and enforces non-zero exit codes on lint or syntax failures.
+| Role | Model Tier | Permitted Tools | Purpose |
+| :--- | :---: | :--- | :--- |
+| **Investigator** | `flash` | `view_file`, `list_dir`, `grep_search`, `find_by_name` | Rapid, low-cost context exploration without edit privileges. |
+| **Tester** | `flash` | `run_command`, `view_file` | Fast test verification without code authoring privileges. |
+| **Coder** | `pro` | `write_to_file`, `replace_file_content`, `run_command`, `grep_search` | Surgical diffs, refactoring, and unit tests with high reasoning. |
 
-### 7. Governance & Quality Gates
-- **English-Only**: Strict English requirement across code, comments, documentation, and commit messages.
-- **Mandatory QA Gates**: Changes must pass `scripts/agy-lint-runner.sh` and `scripts/agy-test-runner.sh` prior to task completion.
-- **ADR Repository**: Built-in Architecture Decision Records scaffold in `docs/adr/`.
+### 2. Dual-Document Governance
+- **[`ARCHITECTURE.md`](ARCHITECTURE.md)** *(Static Repo Map, < 40 lines)*: Fixed structural map defining directory roles, module boundaries, and entry points. Eliminates blind recursive directory scans (`list_dir`).
+- **[`PROJECT.md`](PROJECT.md)** *(Living State Document)*: Maintained by the orchestrator. Features a live milestone table (`PLANNED`, `IN_PROGRESS`, `DONE`, `BLOCKED`), feature inventory, and inter-module interface contracts.
+
+### 3. Aggressive Context Isolation (`.antigravityignore`)
+Blocks agents from polluting their context window with:
+- Package lockfiles (`package-lock.json`, `pnpm-lock.yaml`, `Cargo.lock`, `go.sum`, `poetry.lock`)
+- Heavy media and vectors (`*.svg`, images, video)
+- Build artifacts, bytecode, and vendor directories (`dist/`, `build/`, `target/`, `node_modules/`, `__pycache__/`)
+- Test fixtures and snapshots (`__snapshots__/`, `testdata/`, `fixtures/`)
+
+### 4. Deterministic Lifecycle Automation (`.agents/hooks.json`)
+A native `PostToolUse` lifecycle hook intercepts file-writing actions (`write_to_file`, `replace_file_content`) and triggers [`scripts/agy-lint-runner.sh`](scripts/agy-lint-runner.sh).
+- Automatically formats code via detected project formatters (`prettier`, `cargo fmt`, `gofmt`, `ruff`, `black`, `shfmt`).
+- Emits `{}` JSON output back to the Antigravity engine without wasting LLM reasoning cycles.
+
+### 5. Machine-Readable QA Gates
+- **[`scripts/agy-test-runner.sh`](scripts/agy-test-runner.sh)**: Auto-detects project testing environments (Go, Pytest, Cargo, Jest/Node, Maven, CTest). On failure, parses output into standardized `FILE:LINE: REASON` lines and truncates traces to < 40 lines so agents identify the root cause in a single turn.
+- **[`scripts/agy-lint-runner.sh`](scripts/agy-lint-runner.sh)**: Enforces syntax and lint validations with non-zero exit codes.
+
+---
+
+## 📂 Repository Layout
+
+```text
+agy-swarm/
+├── .agents/
+│   ├── agents/            # Subagent swarm role templates (Investigator, Tester, Coder)
+│   ├── rules/             # Operational rules (token economy, language, boundaries, QA)
+│   ├── skills/            # Extensible domain skills (template-skill)
+│   └── hooks.json         # PostToolUse auto-linting and formatting hook
+├── docs/adr/              # Architecture Decision Records
+├── scripts/
+│   ├── agy-lint-runner.sh # Deterministic formatter and syntax gate
+│   └── agy-test-runner.sh # Structured test runner with compact traces (< 40 lines)
+├── tests/
+│   └── test_runners.sh    # Test suite verifying bootstrap, rules, and runners
+├── .antigravityignore     # Token-guard ignore boundary
+├── AGENTS.md              # Global agent guidelines and invariants
+├── ARCHITECTURE.md        # Static repo map (< 40 lines)
+├── PROJECT.md             # Living sprint state & milestone registry
+├── bootstrap.sh           # Zero-touch installer for target repositories
+└── Makefile               # make test & make lint entrypoints
+```
+
+---
+
+## 🧪 Verification
+
+Run the test suite to verify blueprint integrity:
+
+```bash
+make test  # Validates JSON schemas, subagent specs, line limits, and bootstrap e2e
+make lint  # Runs deterministic formatters and shell syntax checks
+```
+
+---
+
+## 📄 License
+MIT
