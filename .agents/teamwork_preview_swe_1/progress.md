@@ -1,9 +1,9 @@
 # Progress — teamwork_preview_swe_1
 
-Last visited: 2026-09-15T23:26:45Z
+Last visited: 2026-09-15T23:30:05Z
 
 ## Iteration Status
-Current iteration: 3 / 32
+Current iteration: 4 / 32
 
 ## Open-Issues Ledger
 - [reviewer_1] Behavior when git working directory has detached HEAD or untracked submodules.
@@ -15,8 +15,8 @@ Current iteration: 3 / 32
 ## Current Status
 - [x] Implementer pass (teamwork_preview_implementer - completed)
 - [x] Review round 1 (teamwork_preview_reviewer - completed)
-- [x] Review round 2 (teamwork_preview_reviewer - completed, fixed hook command tokenizer & fallback git identity & gpgsign)
-- [/] Review round 3 (teamwork_preview_reviewer)
+- [x] Review round 2 (teamwork_preview_reviewer - completed)
+- [/] Review round 3 (teamwork_preview_reviewer - cb974150-a42f-48a3-93d3-78b67d4eaf51 - in-progress)
 - [ ] Independent verification by orchestrator
 - [ ] Victory audit (teamwork_preview_victory_auditor)
 - [ ] Final report to parent

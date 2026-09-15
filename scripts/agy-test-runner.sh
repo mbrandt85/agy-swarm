@@ -27,9 +27,12 @@ _compute_sha() {
     if git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         (
             cd "$REPO_ROOT"
-            git ls-files -c -o --exclude-standard -z 2>/dev/null | sort -zu | while IFS= read -r -d '' f; do
-                [ -f "$f" ] && sha256sum "$f" 2>/dev/null
-            done | sha256sum | awk '{print $1}'
+            {
+                git ls-files -c -o --exclude-standard -z 2>/dev/null | sort -zu | while IFS= read -r -d '' f; do
+                    [ -f "$f" ] && sha256sum "$f" 2>/dev/null
+                done
+                git submodule foreach --quiet --recursive 'git ls-files -c -o --exclude-standard | while read -r sf; do [ -f "$sf" ] && sha256sum "$sf" 2>/dev/null; done' 2>/dev/null || true
+            } | sha256sum | awk '{print $1}'
         )
     else
         find "$REPO_ROOT" -type f -not -path "*/.git/*" -not -name '.agy-test-cache' -exec sha256sum {} + 2>/dev/null | sort | sha256sum | awk '{print $1}'
