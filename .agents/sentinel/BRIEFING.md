@@ -7,7 +7,7 @@ Route request to teamwork_preview_swe, monitor progress and liveness, and verify
 - Archetype: sentinel
 - Working directory: /home/mbrandt/github/mbrandt85/agy-swarm/.agents/sentinel
 - Orchestrator: 74d5f353-446c-4a62-add6-4e5ba4aa7404 (teamwork_preview_swe)
-- Victory Auditor: [to be spawned on victory claim]
+- Victory Auditor: 96aaada1-8813-41ad-99a4-c956194300c6 (teamwork_preview_victory_auditor)
 - Cron 1 (Progress): task-20
 - Cron 2 (Liveness): task-22
 
@@ -22,10 +22,10 @@ Route request to teamwork_preview_swe, monitor progress and liveness, and verify
 - **Delivered results**: none
 
 ## Project Status
-- **Phase**: in progress
+- **Phase**: auditing
 
 ## Victory Audit Status
-- **Triggered**: no
+- **Triggered**: yes
 - **Verdict**: pending
 - **Retry count**: 0
 
