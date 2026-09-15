@@ -155,11 +155,13 @@ BOOTSTRAP_TMP=$(mktemp -d)
 rm -rf "$BOOTSTRAP_TMP"
 echo "  ✓ bootstrap.sh end-to-end installation verified"
 
-# 8. Test SHA cache: write then skip
+# 8. Test SHA cache: write then skip, commit persistence, modification invalidation, non-git fallback
 CACHE_TMP=$(mktemp -d)
 (
     cp -r "$REPO_DIR/." "$CACHE_TMP/"
     cd "$CACHE_TMP"
+    git config user.name "Tester" 2>/dev/null || true
+    git config user.email "tester@test.com" 2>/dev/null || true
     # Remove any stale cache to ensure first run writes one
     rm -f .agy-test-cache
     # First run — must succeed and write the cache file
@@ -167,12 +169,45 @@ CACHE_TMP=$(mktemp -d)
     [ -f .agy-test-cache ] || { echo "tests/test_runners.sh:1: error: Cache file not written after green run"; exit 1; }
     # Second run — SHA unchanged — must print [SKIP] and exit 0
     OUTPUT=$(AGY_TEST_NESTED=1 bash scripts/agy-test-runner.sh 2>&1)
-    echo "$OUTPUT" | grep -q "\[SKIP\]" || { echo "tests/test_runners.sh:1: error: Cache skip not triggered on unchanged tree"; exit 1; }
+    if ! echo "$OUTPUT" | grep -q "\[SKIP\]"; then
+        echo "tests/test_runners.sh:1: error: Cache skip not triggered on unchanged tree"
+        exit 1
+    fi
+    # Modifying a file must invalidate the cache
+    echo "temporary modification" >> README.md
+    OUTPUT_MOD=$(AGY_TEST_NESTED=1 bash scripts/agy-test-runner.sh 2>&1)
+    if echo "$OUTPUT_MOD" | grep -q "\[SKIP\]"; then
+        echo "tests/test_runners.sh:1: error: Cache skip unexpectedly triggered on modified tree"
+        exit 1
+    fi
+    # Committing the change should allow skip to trigger again
+    git add README.md && git commit -m "test: commit change" >/dev/null 2>&1 || true
+    OUTPUT_POST_COMMIT=$(AGY_TEST_NESTED=1 bash scripts/agy-test-runner.sh 2>&1)
+    if ! echo "$OUTPUT_POST_COMMIT" | grep -q "\[SKIP\]"; then
+        echo "tests/test_runners.sh:1: error: Cache skip failed to persist across commit"
+        exit 1
+    fi
+
+    # Non-git tree verification (including .agents/ directory hashing)
+    rm -rf .git .agy-test-cache
+    AGY_TEST_NESTED=1 bash scripts/agy-test-runner.sh > /dev/null 2>&1
+    [ -f .agy-test-cache ] || { echo "tests/test_runners.sh:1: error: Cache file not written in non-git environment"; exit 1; }
+    OUTPUT_NONGIT=$(AGY_TEST_NESTED=1 bash scripts/agy-test-runner.sh 2>&1)
+    if ! echo "$OUTPUT_NONGIT" | grep -q "\[SKIP\]"; then
+        echo "tests/test_runners.sh:1: error: Cache skip failed in non-git environment"
+        exit 1
+    fi
+    echo "# mod" >> .agents/hooks.json
+    OUTPUT_NONGIT_MOD=$(AGY_TEST_NESTED=1 bash scripts/agy-test-runner.sh 2>&1)
+    if echo "$OUTPUT_NONGIT_MOD" | grep -q "\[SKIP\]"; then
+        echo "tests/test_runners.sh:1: error: Non-git cache failed to detect .agents modification"
+        exit 1
+    fi
 )
 EXIT_CACHE=$?
 rm -rf "$CACHE_TMP"
 [ $EXIT_CACHE -eq 0 ] || exit 1
-echo "  ✓ SHA cache write and skip behaviour verified"
+echo "  ✓ SHA cache write, skip, commit persistence, and non-git behavior verified"
 
 # 9. Verify .agy-test-cache is listed in .antigravityignore and .gitignore
 grep -q "\.agy-test-cache" "$REPO_DIR/.antigravityignore" || {
@@ -205,6 +240,58 @@ grep -q "auto-commit-on-green-tests" "$REPO_DIR/.agents/hooks.json" || {
     exit 1
 }
 echo "  ✓ auto-commit-on-green-tests hook present in hooks.json"
+
+# 12. Verify auto-commit-on-green-tests execution logic
+HOOK_CMD=$(python3 -c "import json; print(json.load(open('$REPO_DIR/.agents/hooks.json'))['auto-commit-on-green-tests']['PostToolUse'][0]['hooks'][0]['command'])")
+HOOK_TMP=$(mktemp -d)
+(
+    cp -r "$REPO_DIR/." "$HOOK_TMP/"
+    cd "$HOOK_TMP"
+    git config user.name "Tester" 2>/dev/null || true
+    git config user.email "tester@test.com" 2>/dev/null || true
+
+    # 12a: Green run commits pending changes and prints {}
+    echo "hook commit test" > hook_test.txt
+    OUT1=$(echo '{"toolCall":{"name":"run_command","args":{"CommandLine":"bash scripts/agy-test-runner.sh"}},"stepIdx":1}' | sh -c "$HOOK_CMD")
+    [ "$OUT1" = "{}" ] || { echo "tests/test_runners.sh:1: error: Hook stdout was not '{}': $OUT1"; exit 1; }
+    if git status --porcelain | grep -q "hook_test.txt"; then
+        echo "tests/test_runners.sh:1: error: Pending changes not committed by hook"
+        exit 1
+    fi
+    if ! git log -1 --pretty=%B | grep -q "chore: auto-commit after green test gate"; then
+        echo "tests/test_runners.sh:1: error: Hook commit message mismatch"
+        exit 1
+    fi
+
+    # 12b: Failed run with error field must NOT commit
+    echo "fail test 1" > fail_test.txt
+    OUT2=$(echo '{"toolCall":{"name":"run_command","args":{"CommandLine":"bash scripts/agy-test-runner.sh"}},"error":"exit status 1"}' | sh -c "$HOOK_CMD")
+    [ "$OUT2" = "{}" ] || { echo "tests/test_runners.sh:1: error: Hook stdout on failure was not '{}': $OUT2"; exit 1; }
+    if ! git status --porcelain | grep -q "fail_test.txt"; then
+        echo "tests/test_runners.sh:1: error: Hook committed on error field"
+        exit 1
+    fi
+
+    # 12c: Failed run with non-zero exit code in content must NOT commit
+    OUT3=$(echo '{"toolCall":{"name":"run_command","args":{"CommandLine":"bash scripts/agy-test-runner.sh"}},"content":"The command exited with code 1."}' | sh -c "$HOOK_CMD")
+    [ "$OUT3" = "{}" ] || { echo "tests/test_runners.sh:1: error: Hook stdout on non-zero exit was not '{}': $OUT3"; exit 1; }
+    if ! git status --porcelain | grep -q "fail_test.txt"; then
+        echo "tests/test_runners.sh:1: error: Hook committed on exit code 1"
+        exit 1
+    fi
+
+    # 12d: Unrelated command must NOT commit
+    OUT4=$(echo '{"toolCall":{"name":"run_command","args":{"CommandLine":"make lint"}},"stepIdx":2}' | sh -c "$HOOK_CMD")
+    [ "$OUT4" = "{}" ] || { echo "tests/test_runners.sh:1: error: Hook stdout on unrelated command was not '{}': $OUT4"; exit 1; }
+    if ! git status --porcelain | grep -q "fail_test.txt"; then
+        echo "tests/test_runners.sh:1: error: Hook committed on unrelated command"
+        exit 1
+    fi
+)
+EXIT_HOOK=$?
+rm -rf "$HOOK_TMP"
+[ $EXIT_HOOK -eq 0 ] || exit 1
+echo "  ✓ auto-commit-on-green-tests execution logic verified"
 
 echo "🎉 All test checks passed successfully!"
 

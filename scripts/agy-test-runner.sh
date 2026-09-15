@@ -25,16 +25,14 @@ CACHE_FILE="$REPO_ROOT/.agy-test-cache"
 
 _compute_sha() {
     if git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        {
-            git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null
-            git -C "$REPO_ROOT" status --porcelain 2>/dev/null
-            git -C "$REPO_ROOT" diff HEAD 2>/dev/null
-            git -C "$REPO_ROOT" ls-files --others --exclude-standard 2>/dev/null | while IFS= read -r f; do
-                [ -f "$REPO_ROOT/$f" ] && sha256sum "$REPO_ROOT/$f" 2>/dev/null
-            done
-        } | sha256sum | awk '{print $1}'
+        (
+            cd "$REPO_ROOT"
+            git ls-files -c -o --exclude-standard -z 2>/dev/null | sort -zu | while IFS= read -r -d '' f; do
+                [ -f "$f" ] && sha256sum "$f" 2>/dev/null
+            done | sha256sum | awk '{print $1}'
+        )
     else
-        find "$REPO_ROOT" -maxdepth 4 -type f -not -path '*/.*' -not -name '.agy-test-cache' -exec sha256sum {} + 2>/dev/null | sort | sha256sum | awk '{print $1}'
+        find "$REPO_ROOT" -type f -not -path "*/.git/*" -not -name '.agy-test-cache' -exec sha256sum {} + 2>/dev/null | sort | sha256sum | awk '{print $1}'
     fi
 }
 
