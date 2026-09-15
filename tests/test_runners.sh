@@ -188,6 +188,34 @@ CACHE_TMP=$(mktemp -d)
         exit 1
     fi
 
+    # Submodule modification invalidates cache
+    SUB_TMP=$(mktemp -d)
+    (
+        cd "$SUB_TMP"
+        git init -q
+        git config user.name "Tester" 2>/dev/null || true
+        git config user.email "tester@test.com" 2>/dev/null || true
+        echo "sub init" > sub_file.txt
+        git add sub_file.txt && git commit -m "sub init" -q
+    )
+    git -c protocol.file.allow=always submodule add -q "$SUB_TMP" test_sub 2>/dev/null || true
+    git commit -m "add test submodule" -q 2>/dev/null || true
+    rm -rf "$SUB_TMP"
+    if [ -d "test_sub" ]; then
+        AGY_TEST_NESTED=1 bash scripts/agy-test-runner.sh > /dev/null 2>&1
+        OUTPUT_SUB_SKIP=$(AGY_TEST_NESTED=1 bash scripts/agy-test-runner.sh 2>&1)
+        if ! echo "$OUTPUT_SUB_SKIP" | grep -q "\[SKIP\]"; then
+            echo "tests/test_runners.sh:1: error: Cache skip failed with clean submodule"
+            exit 1
+        fi
+        echo "sub mod" >> test_sub/sub_file.txt
+        OUTPUT_SUB_MOD=$(AGY_TEST_NESTED=1 bash scripts/agy-test-runner.sh 2>&1)
+        if echo "$OUTPUT_SUB_MOD" | grep -q "\[SKIP\]"; then
+            echo "tests/test_runners.sh:1: error: Cache skip unexpectedly triggered on modified submodule"
+            exit 1
+        fi
+    fi
+
     # Non-git tree verification (including .agents/ directory hashing)
     rm -rf .git .agy-test-cache
     AGY_TEST_NESTED=1 bash scripts/agy-test-runner.sh > /dev/null 2>&1
@@ -359,6 +387,20 @@ HOOK_TMP=$(mktemp -d)
     EXIT_GPG=$?
     rm -rf "$GPG_TMP"
     [ $EXIT_GPG -eq 0 ] || exit 1
+
+    # 12k: Missing python3 in PATH still outputs {} and exits 0
+    OUT11=$(PATH="/nonexistent" echo '{"toolCall":{"name":"run_command","args":{"CommandLine":"bash scripts/agy-test-runner.sh"}}}' | eval "$HOOK_CMD")
+    [ "$OUT11" = "{}" ] || { echo "tests/test_runners.sh:1: error: Hook stdout was not '{}' when python3 is missing: $OUT11"; exit 1; }
+
+    # 12l: Missing git in PATH still outputs {} without error
+    OUT12=$(python3 -c "import subprocess, json, tempfile, os, shutil
+with tempfile.TemporaryDirectory() as td:
+    os.symlink(shutil.which('python3'), os.path.join(td, 'python3'))
+    cmd = json.load(open('$REPO_DIR/.agents/hooks.json'))['auto-commit-on-green-tests']['PostToolUse'][0]['hooks'][0]['command']
+    p = subprocess.run(cmd, shell=True, env={'PATH': td}, input='{\"toolCall\":{\"name\":\"run_command\",\"args\":{\"CommandLine\":\"bash scripts/agy-test-runner.sh\"}}}', capture_output=True, text=True)
+    print(p.stdout.strip())
+")
+    [ "$OUT12" = "{}" ] || { echo "tests/test_runners.sh:1: error: Hook stdout was not '{}' when git is missing: $OUT12"; exit 1; }
 )
 EXIT_HOOK=$?
 rm -rf "$HOOK_TMP"
