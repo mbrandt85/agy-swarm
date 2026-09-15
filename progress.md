@@ -22,6 +22,11 @@ Workflow Efficiency Improvements (R1, R2, R3)
 - Added test checks 12e through 12j in tests/test_runners.sh validating false-positive prevention, missing git config, and gpgsign overrides
 - Verified clean clone execution of make test and make lint
 - Verified live runtime execution of PostToolUse hook in Antigravity CLI
+- Resolved stale test cache bug on submodule modifications by adding recursive submodule file hashing in scripts/agy-test-runner.sh
+- Wrapped hook execution in try/finally in .agents/hooks.json to guarantee protocol compliance ({}) on missing git or runtime errors
+- Added 2>/dev/null || echo "{}" fail-safety to .agents/hooks.json for environments lacking python3
+- Suppressed stderr noise in git subprocess operations in .agents/hooks.json
+- Expanded check 8 and check 12 in tests/test_runners.sh with submodule invalidation and missing python3/git fail-safe checks (12k, 12l)
 
 ## Blockers
 none
