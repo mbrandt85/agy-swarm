@@ -287,6 +287,78 @@ HOOK_TMP=$(mktemp -d)
         echo "tests/test_runners.sh:1: error: Hook committed on unrelated command"
         exit 1
     fi
+
+    # 12e: Command mentioning test runner in stdout (git log / git diff) must NOT commit
+    OUT5=$(echo '{"toolCall":{"name":"run_command","args":{"CommandLine":"git log"}},"content":"commit abc: update scripts/agy-test-runner.sh"}' | eval "$HOOK_CMD")
+    [ "$OUT5" = "{}" ] || { echo "tests/test_runners.sh:1: error: Hook stdout was not '{}': $OUT5"; exit 1; }
+    if ! git status --porcelain | grep -q "fail_test.txt"; then
+        echo "tests/test_runners.sh:1: error: Hook committed on command whose output mentioned runner script"
+        exit 1
+    fi
+
+    # 12f: Inspecting test runner script (cat / grep) must NOT commit
+    OUT6=$(echo '{"toolCall":{"name":"run_command","args":{"CommandLine":"cat scripts/agy-test-runner.sh"}}}' | eval "$HOOK_CMD")
+    [ "$OUT6" = "{}" ] || { echo "tests/test_runners.sh:1: error: Hook stdout was not '{}': $OUT6"; exit 1; }
+    if ! git status --porcelain | grep -q "fail_test.txt"; then
+        echo "tests/test_runners.sh:1: error: Hook committed when inspecting test runner script"
+        exit 1
+    fi
+
+    # 12g: Output with [FAIL] TEST FAILURES DETECTED! must NOT commit
+    OUT7=$(echo '{"toolCall":{"name":"run_command","args":{"CommandLine":"bash scripts/agy-test-runner.sh"}},"content":"[FAIL] TEST FAILURES DETECTED! (Exit Code: 1)"}' | eval "$HOOK_CMD")
+    [ "$OUT7" = "{}" ] || { echo "tests/test_runners.sh:1: error: Hook stdout was not '{}': $OUT7"; exit 1; }
+    if ! git status --porcelain | grep -q "fail_test.txt"; then
+        echo "tests/test_runners.sh:1: error: Hook committed on [FAIL] test runner output"
+        exit 1
+    fi
+
+    # 12h: JSON payload with exitCode != 0 must NOT commit
+    OUT8=$(echo '{"toolCall":{"name":"run_command","args":{"CommandLine":"bash scripts/agy-test-runner.sh"}},"exitCode":1}' | eval "$HOOK_CMD")
+    [ "$OUT8" = "{}" ] || { echo "tests/test_runners.sh:1: error: Hook stdout was not '{}': $OUT8"; exit 1; }
+    if ! git status --porcelain | grep -q "fail_test.txt"; then
+        echo "tests/test_runners.sh:1: error: Hook committed on exitCode != 0"
+        exit 1
+    fi
+
+    # 12i: Environment without git user identity commits with fallback
+    NO_ID_TMP=$(mktemp -d)
+    (
+        cp -r "$REPO_DIR/." "$NO_ID_TMP/"
+        cd "$NO_ID_TMP"
+        # Explicitly unset git identity
+        git config --unset user.name 2>/dev/null || true
+        git config --unset user.email 2>/dev/null || true
+        echo "identity test" > no_id.txt
+        OUT9=$(echo '{"toolCall":{"name":"run_command","args":{"CommandLine":"bash scripts/agy-test-runner.sh"}}}' | eval "$HOOK_CMD")
+        [ "$OUT9" = "{}" ] || { echo "tests/test_runners.sh:1: error: Hook stdout was not '{}': $OUT9"; exit 1; }
+        if git status --porcelain | grep -q "no_id.txt"; then
+            echo "tests/test_runners.sh:1: error: Hook failed to commit when git user config is missing"
+            exit 1
+        fi
+    )
+    EXIT_NO_ID=$?
+    rm -rf "$NO_ID_TMP"
+    [ $EXIT_NO_ID -eq 0 ] || exit 1
+
+    # 12j: commit.gpgsign = true does not break auto-commit
+    GPG_TMP=$(mktemp -d)
+    (
+        cp -r "$REPO_DIR/." "$GPG_TMP/"
+        cd "$GPG_TMP"
+        git config user.name "Tester" 2>/dev/null || true
+        git config user.email "tester@test.com" 2>/dev/null || true
+        git config commit.gpgsign true
+        echo "gpg test" > gpg_test.txt
+        OUT10=$(echo '{"toolCall":{"name":"run_command","args":{"CommandLine":"bash scripts/agy-test-runner.sh"}}}' | eval "$HOOK_CMD")
+        [ "$OUT10" = "{}" ] || { echo "tests/test_runners.sh:1: error: Hook stdout was not '{}': $OUT10"; exit 1; }
+        if git status --porcelain | grep -q "gpg_test.txt"; then
+            echo "tests/test_runners.sh:1: error: Hook failed to commit when commit.gpgsign is true"
+            exit 1
+        fi
+    )
+    EXIT_GPG=$?
+    rm -rf "$GPG_TMP"
+    [ $EXIT_GPG -eq 0 ] || exit 1
 )
 EXIT_HOOK=$?
 rm -rf "$HOOK_TMP"
