@@ -8,6 +8,17 @@ BASE_URL="${BASE_URL:-https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAM
 
 echo "🚀 Bootstrapping Antigravity Swarm blueprint into $(pwd)..."
 
+# Helper function to prevent overwriting existing files
+download_if_not_exists() {
+  local url="$1"
+  local dest="$2"
+  if [ -f "$dest" ]; then
+    echo "  ↳ [SKIPPED] $dest already exists."
+  else
+    curl -sL "$url" -o "$dest"
+  fi
+}
+
 # 1. Create directory structures for native .agents/
 mkdir -p .agents/rules \
          .agents/skills/template-skill \
@@ -18,18 +29,18 @@ mkdir -p .agents/rules \
 
 # 2. Download token exclusion boundaries
 echo "  ↳ Installing .antigravityignore..."
-curl -sL "${BASE_URL}/.antigravityignore" -o .antigravityignore
+download_if_not_exists "${BASE_URL}/.antigravityignore" .antigravityignore
 
 # 3. Download architecture map and agent guides
 echo "  ↳ Installing ARCHITECTURE.md, AGENTS.md, and PROJECT.md..."
-curl -sL "${BASE_URL}/ARCHITECTURE.md" -o ARCHITECTURE.md
-curl -sL "${BASE_URL}/AGENTS.md" -o AGENTS.md
-curl -sL "${BASE_URL}/PROJECT.md" -o PROJECT.md
-curl -sL "${BASE_URL}/.agents/templates/progress.md" -o .agents/templates/progress.md
+download_if_not_exists "${BASE_URL}/ARCHITECTURE.md" ARCHITECTURE.md
+download_if_not_exists "${BASE_URL}/AGENTS.md" AGENTS.md
+download_if_not_exists "${BASE_URL}/PROJECT.md" PROJECT.md
+download_if_not_exists "${BASE_URL}/.agents/templates/progress.md" .agents/templates/progress.md
 
 # 4. Download deterministic lifecycle hooks
 echo "  ↳ Installing .agents/hooks.json..."
-curl -sL "${BASE_URL}/.agents/hooks.json" -o .agents/hooks.json
+download_if_not_exists "${BASE_URL}/.agents/hooks.json" .agents/hooks.json
 
 # 5. Download governance rules
 echo "  ↳ Installing governance rules..."
@@ -42,7 +53,7 @@ RULES=(
   "06-qa-gates.md"
 )
 for rule in "${RULES[@]}"; do
-  curl -sL "${BASE_URL}/.agents/rules/${rule}" -o ".agents/rules/${rule}"
+  download_if_not_exists "${BASE_URL}/.agents/rules/${rule}" ".agents/rules/${rule}"
 done
 
 # 6. Download subagent swarm role templates (least-privilege & model tiering)
@@ -53,19 +64,19 @@ SUBAGENTS=(
   "coder.md"
 )
 for agent in "${SUBAGENTS[@]}"; do
-  curl -sL "${BASE_URL}/.agents/agents/${agent}" -o ".agents/agents/${agent}"
+  download_if_not_exists "${BASE_URL}/.agents/agents/${agent}" ".agents/agents/${agent}"
 done
 
 # 7. Download skills template
 echo "  ↳ Installing skill definitions..."
-curl -sL "${BASE_URL}/.agents/skills/template-skill/SKILL.md" -o .agents/skills/template-skill/SKILL.md
+download_if_not_exists "${BASE_URL}/.agents/skills/template-skill/SKILL.md" .agents/skills/template-skill/SKILL.md
 
 # 8. Download ADR scaffold & test/lint runners
 echo "  ↳ Installing ADR scaffolding and scripts..."
-curl -sL "${BASE_URL}/docs/adr/0001-record-architecture-decisions.md" -o docs/adr/0001-record-architecture-decisions.md
-curl -sL "${BASE_URL}/docs/adr/0002-antigravity-native-standardization.md" -o docs/adr/0002-antigravity-native-standardization.md
-curl -sL "${BASE_URL}/scripts/agy-test-runner.sh" -o scripts/agy-test-runner.sh
-curl -sL "${BASE_URL}/scripts/agy-lint-runner.sh" -o scripts/agy-lint-runner.sh
+download_if_not_exists "${BASE_URL}/docs/adr/0001-record-architecture-decisions.md" docs/adr/0001-record-architecture-decisions.md
+download_if_not_exists "${BASE_URL}/docs/adr/0002-antigravity-native-standardization.md" docs/adr/0002-antigravity-native-standardization.md
+download_if_not_exists "${BASE_URL}/scripts/agy-test-runner.sh" scripts/agy-test-runner.sh
+download_if_not_exists "${BASE_URL}/scripts/agy-lint-runner.sh" scripts/agy-lint-runner.sh
 
 chmod +x scripts/*.sh
 
