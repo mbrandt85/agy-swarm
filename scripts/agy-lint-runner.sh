@@ -1,7 +1,35 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-echo "🧹 Running deterministic formatters and linters..."
+# Check if invoked as Antigravity hook (either via --hook or via stdin JSON payload)
+IS_HOOK=false
+TARGETS=("$@")
+
+if [ "${1:-}" = "--hook" ]; then
+    IS_HOOK=true
+    shift
+    TARGETS=("$@")
+elif [ ! -t 0 ]; then
+    # Read full stdin from hook pipe
+    STDIN_INPUT=$(cat)
+    if [[ "$STDIN_INPUT" == *"conversationId"* ]] || [[ "$STDIN_INPUT" == "{"* ]]; then
+        IS_HOOK=true
+        TARGET_FILE=$(echo "$STDIN_INPUT" | sed -n 's/.*"TargetFile":"\([^"]*\)".*/\1/p' || true)
+        if [ -n "$TARGET_FILE" ] && [ -f "$TARGET_FILE" ]; then
+            TARGETS=("$TARGET_FILE")
+        fi
+    fi
+fi
+
+log() {
+    if [ "$IS_HOOK" = true ]; then
+        echo "$@" >&2
+    else
+        echo "$@"
+    fi
+}
+
+log "🧹 Running deterministic formatters and linters..."
 
 EXIT_CODE=0
 TARGETS=("$@")
@@ -98,12 +126,15 @@ if [ -f "Makefile" ] && grep -q "^lint:" Makefile 2>/dev/null; then
 fi
 
 if [ $EXIT_CODE -ne 0 ]; then
-    echo "[FAIL] Lint or syntax checks detected errors!"
-    echo "============================================================"
+    log "[FAIL] Lint or syntax checks detected errors!"
+    log "============================================================"
     tail -n 25 "$LINT_LOG"
-    echo "============================================================"
+    log "============================================================"
     exit $EXIT_CODE
 fi
 
-echo "[PASS] Code formatting applied and lint checks passed."
+log "[PASS] Code formatting applied and lint checks passed."
+if [ "$IS_HOOK" = true ]; then
+    echo "{}"
+fi
 exit 0

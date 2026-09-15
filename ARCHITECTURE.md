@@ -8,7 +8,6 @@ A portable, token-optimized multi-agent orchestration blueprint for Antigravity 
   - `skills/`: Extensible domain-specific agent skills.
   - `agents/`: Subagent swarm role templates (Investigator, Tester, Coder).
   - `hooks.json`: Deterministic lifecycle hooks (post-edit formatting/linting).
-- `.gemini/`: Backward-compatible mirror for legacy Gemini CLI tooling.
 - `docs/adr/`: Architecture Decision Records tracking major structural choices.
 - `scripts/`: Standardized, token-efficient CLI runners.
   - `scripts/agy-lint-runner.sh`: Auto-formatter and lint gate.

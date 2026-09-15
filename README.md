@@ -1,6 +1,6 @@
 # Antigravity CLI Swarm Blueprint
 
-A portable, token-optimized multi-agent orchestration boilerplate and ruleset designed natively for **Google Antigravity CLI** (with backward compatibility for Gemini CLI).
+A portable, token-optimized multi-agent orchestration boilerplate and ruleset designed natively for **Google Antigravity CLI**.
 
 ## Quick Bootstrap
 
@@ -12,7 +12,7 @@ curl -sL https://raw.githubusercontent.com/mbrandt85/agy-swarm/main/bootstrap.sh
 
 ## Core Features & Architecture
 
-### 1. Token-Guard Ignore Protection (`.antigravityignore` & `.geminiignore`)
+### 1. Token-Guard Ignore Protection (`.antigravityignore`)
 Aggressively excludes lockfiles (`package-lock.json`, `pnpm-lock.yaml`, `Cargo.lock`, `go.sum`), heavy binary and vector assets (`*.svg`, images, video), minified code, test fixtures, and build artifacts. Prevents accidental ingestion of massive dependency trees into the agent context window.
 
 ### 2. Native Customization Hierarchy (`.agents/`)
@@ -21,8 +21,7 @@ Organizes all customizations natively discovered by the Antigravity CLI:
 - `.agents/skills/`: Domain-specific skill blueprints.
 - `.agents/agents/`: Specialized subagent role templates.
 - `.agents/hooks.json`: Lifecycle automation hooks.
-- `AGENTS.md` / `GEMINI.md`: Root-level agent directives and invariants.
-- `.gemini/`: Full backward-compatible mirror for legacy Gemini CLI workflows.
+- `AGENTS.md`: Root-level agent directives and invariants.
 
 ### 3. Deterministic Lifecycle Hooks (`.agents/hooks.json`)
 Configures deterministic automation on the `PostToolUse` lifecycle event for file-writing tools (`write_to_file`, `replace_file_content`, etc.). Automatically executes `scripts/agy-lint-runner.sh` after file writes, guaranteeing consistent code formatting without wasting agent reasoning tokens.

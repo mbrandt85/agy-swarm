@@ -17,7 +17,7 @@ Specialized subagents are defined in `.agents/agents/` using least-privilege too
 - `PostToolUse` triggers `scripts/agy-lint-runner.sh` on file writing/editing tools (`write_to_file`, `replace_file_content`, etc.) to format code deterministically and eliminate wasted agent reasoning tokens.
 
 ## Rules Index (`.agents/rules/`)
-All agents must adhere to the rules in `.agents/rules/` (mirrored in `.gemini/rules/` for backward compatibility):
+All agents must adhere to the rules in `.agents/rules/`:
 1. **01-caveman-efficiency.md**: Minimize context tokens; never read unparsed test logs directly.
 2. **02-language-en.md**: All code, comments, documentation, and commit messages MUST be English.
 3. **03-architecture.md**: Respect module boundaries and consult `ARCHITECTURE.md` and `docs/adr/`.

@@ -15,7 +15,7 @@ fi
 echo "  ✓ ARCHITECTURE.md line count check passed ($ARCH_LINES lines < 40)"
 
 # 2. JSON Validation
-for json_file in .agents/hooks.json .gemini/hooks.json; do
+for json_file in .agents/hooks.json; do
     if [ -f "$json_file" ]; then
         jq . "$json_file" >/dev/null || {
             echo "$json_file:1: error: Invalid JSON syntax"
@@ -42,22 +42,14 @@ for agent in investigator tester coder; do
 done
 echo "  ✓ Subagent role templates verified"
 
-# 4. Backward Compatibility Sync Check
+# 4. Rules Integrity Check
 for rule in 01-caveman-efficiency.md 02-language-en.md 03-architecture.md 04-context-boundaries.md 05-git-workflow.md 06-qa-gates.md; do
-    if ! diff -q ".agents/rules/${rule}" ".gemini/rules/${rule}" >/dev/null 2>&1; then
-        echo ".gemini/rules/${rule}:1: error: Mismatch with .agents/rules/${rule}"
+    if [ ! -f ".agents/rules/${rule}" ]; then
+        echo ".agents/rules/${rule}:1: error: Missing governance rule"
         exit 1
     fi
 done
-diff -q ".agents/hooks.json" ".gemini/hooks.json" >/dev/null 2>&1 || {
-    echo ".gemini/hooks.json:1: error: Mismatch with .agents/hooks.json"
-    exit 1
-}
-diff -q ".antigravityignore" ".gemini/.geminiignore" >/dev/null 2>&1 || {
-    echo ".gemini/.geminiignore:1: error: Mismatch with .antigravityignore"
-    exit 1
-}
-echo "  ✓ Backward compatibility files in sync"
+echo "  ✓ Governance rules integrity verified"
 
 # 5. Test Structured Failure Extraction & Line Truncation
 TEMP_MOCK_LOG=$(mktemp -t mock-test-log-XXXXXX.log)
@@ -138,10 +130,8 @@ BOOTSTRAP_TMP=$(mktemp -d)
     cd "$BOOTSTRAP_TMP"
     BASE_URL="file://${REPO_DIR}" bash "${REPO_DIR}/bootstrap.sh" >/dev/null 2>&1
     [ -f .antigravityignore ] || exit 1
-    [ -f .gemini/.geminiignore ] || exit 1
     [ -f ARCHITECTURE.md ] || exit 1
     [ -f AGENTS.md ] || exit 1
-    [ -f GEMINI.md ] || exit 1
     [ -f .agents/hooks.json ] || exit 1
     [ -f .agents/rules/01-caveman-efficiency.md ] || exit 1
     [ -f .agents/agents/investigator.md ] || exit 1
