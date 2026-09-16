@@ -12,6 +12,7 @@ A portable, token-optimized multi-agent orchestration blueprint for Antigravity 
 - `scripts/`: Standardized, token-efficient CLI runners.
   - `scripts/agy-lint-runner.sh`: Auto-formatter and lint gate.
   - `scripts/agy-test-runner.sh`: Structured test runner (< 40 line traces).
+  - `scripts/clean-teamwork-logs.sh`: Automated teamwork agent log cleaner.
 - `PROJECT.md`: Living project state document and milestone registry.
 - `bootstrap.sh`: Universal installation script for target repositories.
 

@@ -147,6 +147,7 @@ BOOTSTRAP_TMP=$(mktemp -d)
     [ -f .agents/agents/investigator.md ] || exit 1
     [ -x scripts/agy-test-runner.sh ] || exit 1
     [ -x scripts/agy-lint-runner.sh ] || exit 1
+    [ -x scripts/clean-teamwork-logs.sh ] || exit 1
 ) || {
     echo "bootstrap.sh:1: error: End-to-end bootstrap execution failed"
     rm -rf "$BOOTSTRAP_TMP"
@@ -407,5 +408,78 @@ rm -rf "$HOOK_TMP"
 [ $EXIT_HOOK -eq 0 ] || exit 1
 echo "  ✓ auto-commit-on-green-tests execution logic verified"
 
+# 13. Verify hooks.json contains teamwork-log-cleanup hook with Stop or PostInvocation
+python3 -c "
+import json, sys
+conf = json.load(open('$REPO_DIR/.agents/hooks.json'))
+hook = conf.get('teamwork-log-cleanup') or conf.get('teamwork-cleanup')
+if not hook:
+    sys.exit('Missing teamwork log cleanup hook in hooks.json')
+if 'Stop' not in hook and 'PostInvocation' not in hook:
+    sys.exit('teamwork log cleanup hook must define Stop or PostInvocation')
+" || {
+    echo ".agents/hooks.json:1: error: teamwork-log-cleanup hook missing or invalid in hooks.json"
+    exit 1
+}
+echo "  ✓ teamwork-log-cleanup hook configuration verified in hooks.json"
+
+# 14. Verify teamwork log cleanup execution logic & graceful edge cases
+CLEANUP_TMP=$(mktemp -d)
+(
+    cp -r "$REPO_DIR/." "$CLEANUP_TMP/"
+    cd "$CLEANUP_TMP"
+
+    # Extract the cleanup command from hooks.json
+    CLEANUP_CMD=$(python3 -c "import json; conf = json.load(open('$CLEANUP_TMP/.agents/hooks.json')); h = conf.get('teamwork-log-cleanup') or conf.get('teamwork-cleanup'); print((h.get('Stop') or h.get('PostInvocation'))[0]['command'])")
+
+    # 14a: Verify cleanup script exists and is executable
+    [ -x "scripts/clean-teamwork-logs.sh" ] || {
+        echo "scripts/clean-teamwork-logs.sh:1: error: clean-teamwork-logs.sh not executable or missing"
+        exit 1
+    }
+
+    # 14b: Verify standalone script execution deletes targets and outputs {}
+    mkdir -p .agents/teamwork_preview_dummy1 .agents/teamwork_preview_dummy2 .agents/sentinel
+    touch .agents/ORIGINAL_REQUEST.md .agents/teamwork_preview_dummy1/log.txt .agents/sentinel/state.json
+    OUT_SCRIPT=$(bash scripts/clean-teamwork-logs.sh)
+    [ "$OUT_SCRIPT" = "{}" ] || { echo "scripts/clean-teamwork-logs.sh:1: error: Script stdout was not '{}': $OUT_SCRIPT"; exit 1; }
+    [ ! -d .agents/teamwork_preview_dummy1 ] || { echo "scripts/clean-teamwork-logs.sh:1: error: teamwork_preview_dummy1 not deleted"; exit 1; }
+    [ ! -d .agents/teamwork_preview_dummy2 ] || { echo "scripts/clean-teamwork-logs.sh:1: error: teamwork_preview_dummy2 not deleted"; exit 1; }
+    [ ! -d .agents/sentinel ] || { echo "scripts/clean-teamwork-logs.sh:1: error: sentinel not deleted"; exit 1; }
+    [ ! -f .agents/ORIGINAL_REQUEST.md ] || { echo "scripts/clean-teamwork-logs.sh:1: error: ORIGINAL_REQUEST.md not deleted"; exit 1; }
+
+    # 14c: Verify standalone script execution when paths do not exist (graceful conditional)
+    OUT_EMPTY=$(bash scripts/clean-teamwork-logs.sh)
+    [ "$OUT_EMPTY" = "{}" ] || { echo "scripts/clean-teamwork-logs.sh:1: error: Script stdout on nonexistent paths was not '{}': $OUT_EMPTY"; exit 1; }
+
+    # 14d: Verify hook command execution with simulated Stop payload
+    mkdir -p .agents/teamwork_preview_dummy3 .agents/sentinel
+    touch .agents/ORIGINAL_REQUEST.md
+    OUT_HOOK=$(echo '{"executionNum":1,"terminationReason":"model_stop","fullyIdle":true}' | eval "$CLEANUP_CMD")
+    [ "$OUT_HOOK" = "{}" ] || { echo "tests/test_runners.sh:1: error: Hook command stdout was not '{}': $OUT_HOOK"; exit 1; }
+    [ ! -d .agents/teamwork_preview_dummy3 ] || { echo "tests/test_runners.sh:1: error: Hook did not delete teamwork_preview_dummy3"; exit 1; }
+    [ ! -d .agents/sentinel ] || { echo "tests/test_runners.sh:1: error: Hook did not delete sentinel"; exit 1; }
+    [ ! -f .agents/ORIGINAL_REQUEST.md ] || { echo "tests/test_runners.sh:1: error: Hook did not delete ORIGINAL_REQUEST.md"; exit 1; }
+
+    # 14e: Verify hook command graceful execution when paths do not exist
+    OUT_HOOK_EMPTY=$(echo '{"executionNum":2,"terminationReason":"model_stop","fullyIdle":true}' | eval "$CLEANUP_CMD")
+    [ "$OUT_HOOK_EMPTY" = "{}" ] || { echo "tests/test_runners.sh:1: error: Hook command stdout on nonexistent paths was not '{}': $OUT_HOOK_EMPTY"; exit 1; }
+
+    # 14f: Verify hook command fallback when scripts/clean-teamwork-logs.sh is removed
+    mkdir -p .agents/teamwork_preview_dummy4 .agents/sentinel
+    touch .agents/ORIGINAL_REQUEST.md
+    rm -f scripts/clean-teamwork-logs.sh
+    OUT_FALLBACK=$(echo '{"executionNum":3,"terminationReason":"model_stop"}' | eval "$CLEANUP_CMD")
+    [ "$OUT_FALLBACK" = "{}" ] || { echo "tests/test_runners.sh:1: error: Fallback hook stdout was not '{}': $OUT_FALLBACK"; exit 1; }
+    [ ! -d .agents/teamwork_preview_dummy4 ] || { echo "tests/test_runners.sh:1: error: Fallback hook did not delete teamwork_preview_dummy4"; exit 1; }
+    [ ! -d .agents/sentinel ] || { echo "tests/test_runners.sh:1: error: Fallback hook did not delete sentinel"; exit 1; }
+    [ ! -f .agents/ORIGINAL_REQUEST.md ] || { echo "tests/test_runners.sh:1: error: Fallback hook did not delete ORIGINAL_REQUEST.md"; exit 1; }
+)
+EXIT_CLEANUP=$?
+rm -rf "$CLEANUP_TMP"
+[ $EXIT_CLEANUP -eq 0 ] || exit 1
+echo "  ✓ teamwork log cleanup execution logic & graceful conditional handling verified"
+
 echo "🎉 All test checks passed successfully!"
+
 

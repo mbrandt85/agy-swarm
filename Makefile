@@ -1,4 +1,4 @@
-.PHONY: all test lint
+.PHONY: all test lint clean
 
 all: test lint
 
@@ -10,5 +10,5 @@ lint:
 
 clean:
 	@echo "🧹 Cleaning up teamwork agent logs..."
-	@rm -rf .agents/teamwork_preview_* .agents/sentinel .agents/ORIGINAL_REQUEST.md
+	@bash scripts/clean-teamwork-logs.sh >/dev/null 2>&1 || rm -rf .agents/teamwork_preview_* .agents/sentinel .agents/ORIGINAL_REQUEST.md
 	@echo "✅ Cleanup complete!"

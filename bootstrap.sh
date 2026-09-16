@@ -77,6 +77,7 @@ download_if_not_exists "${BASE_URL}/docs/adr/0001-record-architecture-decisions.
 download_if_not_exists "${BASE_URL}/docs/adr/0002-antigravity-native-standardization.md" docs/adr/0002-antigravity-native-standardization.md
 download_if_not_exists "${BASE_URL}/scripts/agy-test-runner.sh" scripts/agy-test-runner.sh
 download_if_not_exists "${BASE_URL}/scripts/agy-lint-runner.sh" scripts/agy-lint-runner.sh
+download_if_not_exists "${BASE_URL}/scripts/clean-teamwork-logs.sh" scripts/clean-teamwork-logs.sh
 
 chmod +x scripts/*.sh
 
