@@ -5,3 +5,8 @@
 __pycache__/
 *.pyc
 
+
+# Teamwork preview logs
+.agents/teamwork_preview_*
+.agents/sentinel/
+.agents/ORIGINAL_REQUEST.md
