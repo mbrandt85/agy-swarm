@@ -23,6 +23,10 @@ Automatic Teamwork Log Cleanup (R1, R2)
 - Verified make lint and scripts/agy-lint-runner.sh pass with exit code 0
 - Verified consecutive test runner SHA cache skip behavior
 - Verified make clean cleans teamwork logs and leaves clean working tree
+- Fixed Stop hook command in .agents/hooks.json to resolve ROOT and clean targets when daemon executes from .agents CWD in non-git environments
+- Fixed foreign directory deletion hazard in scripts/clean-teamwork-logs.sh by removing fallback to pwd and strictly guarding rm -rf with basename check
+- Added subshell failure guards against set -e in scripts/clean-teamwork-logs.sh
+- Expanded tests/test_runners.sh with checks 14h-14j verifying .agents CWD execution, non-git environments, and foreign folder safety
 
 ## Blockers
 none
