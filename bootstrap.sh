@@ -67,9 +67,11 @@ for agent in "${SUBAGENTS[@]}"; do
   download_if_not_exists "${BASE_URL}/.agents/agents/${agent}" ".agents/agents/${agent}"
 done
 
-# 7. Download skills template
+# 7. Download skills template and included skills
 echo "  ↳ Installing skill definitions..."
+mkdir -p .agents/skills/take-notes
 download_if_not_exists "${BASE_URL}/.agents/skills/template-skill/SKILL.md" .agents/skills/template-skill/SKILL.md
+download_if_not_exists "${BASE_URL}/.agents/skills/take-notes/SKILL.md" .agents/skills/take-notes/SKILL.md
 
 # 8. Download ADR scaffold & test/lint runners
 echo "  ↳ Installing ADR scaffolding and scripts..."
