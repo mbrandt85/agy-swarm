@@ -486,6 +486,40 @@ CLEANUP_TMP=$(mktemp -d)
     [ ! -d .agents/teamwork_preview_dummy5 ] || { echo "tests/test_runners.sh:1: error: Subdirectory execution did not delete teamwork_preview_dummy5"; exit 1; }
     [ ! -d .agents/sentinel ] || { echo "tests/test_runners.sh:1: error: Subdirectory execution did not delete sentinel"; exit 1; }
     [ ! -f .agents/ORIGINAL_REQUEST.md ] || { echo "tests/test_runners.sh:1: error: Subdirectory execution did not delete ORIGINAL_REQUEST.md"; exit 1; }
+
+    # 14h: Verify hook command execution when invoked from .agents working directory (host daemon behavior)
+    mkdir -p .agents/teamwork_preview_dummy6 .agents/sentinel
+    touch .agents/ORIGINAL_REQUEST.md
+    OUT_AGENTS_CWD=$(cd .agents && echo '{"executionNum":4,"terminationReason":"model_stop","fullyIdle":true}' | eval "$CLEANUP_CMD")
+    [ "$OUT_AGENTS_CWD" = "{}" ] || { echo "tests/test_runners.sh:1: error: .agents CWD hook stdout was not '{}': $OUT_AGENTS_CWD"; exit 1; }
+    [ ! -d .agents/teamwork_preview_dummy6 ] || { echo "tests/test_runners.sh:1: error: .agents CWD hook did not delete teamwork_preview_dummy6"; exit 1; }
+    [ ! -d .agents/sentinel ] || { echo "tests/test_runners.sh:1: error: .agents CWD hook did not delete sentinel"; exit 1; }
+    [ ! -f .agents/ORIGINAL_REQUEST.md ] || { echo "tests/test_runners.sh:1: error: .agents CWD hook did not delete ORIGINAL_REQUEST.md"; exit 1; }
+
+    # 14i: Verify hook command execution from .agents in a non-git project
+    NON_GIT_TMP=$(mktemp -d)
+    mkdir -p "$NON_GIT_TMP/.agents/teamwork_preview_dummy7" "$NON_GIT_TMP/.agents/sentinel" "$NON_GIT_TMP/scripts"
+    touch "$NON_GIT_TMP/.agents/ORIGINAL_REQUEST.md"
+    cp "$REPO_DIR/scripts/clean-teamwork-logs.sh" "$NON_GIT_TMP/scripts/"
+    chmod +x "$NON_GIT_TMP/scripts/clean-teamwork-logs.sh"
+    OUT_NON_GIT=$(cd "$NON_GIT_TMP/.agents" && echo '{"executionNum":5,"terminationReason":"model_stop","fullyIdle":true}' | eval "$CLEANUP_CMD")
+    [ "$OUT_NON_GIT" = "{}" ] || { echo "tests/test_runners.sh:1: error: Non-git .agents hook stdout was not '{}': $OUT_NON_GIT"; exit 1; }
+    [ ! -d "$NON_GIT_TMP/.agents/teamwork_preview_dummy7" ] || { echo "tests/test_runners.sh:1: error: Non-git hook did not delete dummy7"; exit 1; }
+    [ ! -d "$NON_GIT_TMP/.agents/sentinel" ] || { echo "tests/test_runners.sh:1: error: Non-git hook did not delete sentinel"; exit 1; }
+    [ ! -f "$NON_GIT_TMP/.agents/ORIGINAL_REQUEST.md" ] || { echo "tests/test_runners.sh:1: error: Non-git hook did not delete ORIGINAL_REQUEST.md"; exit 1; }
+    rm -rf "$NON_GIT_TMP"
+
+    # 14j: Verify standalone script execution outside .agents does NOT delete foreign sentinel folders
+    FOREIGN_TMP=$(mktemp -d)
+    mkdir -p "$FOREIGN_TMP/sentinel"
+    touch "$FOREIGN_TMP/sentinel/important_policy.sentinel"
+    cp "$REPO_DIR/scripts/clean-teamwork-logs.sh" "$FOREIGN_TMP/"
+    chmod +x "$FOREIGN_TMP/clean-teamwork-logs.sh"
+    OUT_FOREIGN=$(cd "$FOREIGN_TMP" && ./clean-teamwork-logs.sh)
+    [ "$OUT_FOREIGN" = "{}" ] || { echo "tests/test_runners.sh:1: error: Foreign execution stdout was not '{}': $OUT_FOREIGN"; exit 1; }
+    [ -d "$FOREIGN_TMP/sentinel" ] || { echo "tests/test_runners.sh:1: error: Foreign sentinel was deleted!"; exit 1; }
+    [ -f "$FOREIGN_TMP/sentinel/important_policy.sentinel" ] || { echo "tests/test_runners.sh:1: error: Foreign sentinel file was deleted!"; exit 1; }
+    rm -rf "$FOREIGN_TMP"
 )
 EXIT_CLEANUP=$?
 rm -rf "$CLEANUP_TMP"

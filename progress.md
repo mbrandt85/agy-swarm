@@ -6,6 +6,7 @@ Automatic Teamwork Log Cleanup (R1, R2)
 ## Active Agents
 - teamwork_preview_implementer_r1 (d056cee5-007f-4024-83f7-c1b730b6023c)
 - teamwork_preview_reviewer_r1 (2f295dfd-4f76-42eb-a0bf-cc97d3e4ea77)
+- teamwork_preview_reviewer_r2 (43f978b6-1d5a-4caf-a7fb-d09bdb804250)
 
 ## Completed
 - Audited repository architecture, existing hooks, and test runners
