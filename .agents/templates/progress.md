@@ -1,16 +1,16 @@
 # Progress Log
 
 ## Phase
-<!-- Current sprint phase or milestone name -->
+<!-- 1 line: current sprint phase or milestone name -->
 
 ## Active Agents
-<!-- List of active subagent roles and conversation IDs -->
+<!-- Max 5 lines: role + conversation ID, one per line -->
 
 ## Completed
-<!-- Bullet list of completed items this session -->
+<!-- Max 10 lines: one bullet per completed item, current session only -->
 
 ## Blockers
-<!-- Any blocking issues. Write "none" if none. -->
+<!-- Max 3 lines: one per blocker. Write "none" if none. -->
 
 ## ETA
-<!-- Estimated completion or "unknown" -->
+<!-- 1 line: estimated completion or "unknown" -->
