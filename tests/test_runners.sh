@@ -520,6 +520,44 @@ CLEANUP_TMP=$(mktemp -d)
     [ -d "$FOREIGN_TMP/sentinel" ] || { echo "tests/test_runners.sh:1: error: Foreign sentinel was deleted!"; exit 1; }
     [ -f "$FOREIGN_TMP/sentinel/important_policy.sentinel" ] || { echo "tests/test_runners.sh:1: error: Foreign sentinel file was deleted!"; exit 1; }
     rm -rf "$FOREIGN_TMP"
+
+    # 14k: Verify cleanup handles read-only subdirectories (chmod 0555) without permission errors
+    mkdir -p .agents/teamwork_preview_ro/ro_sub .agents/sentinel/ro_sub
+    touch .agents/teamwork_preview_ro/ro_sub/locked.txt .agents/sentinel/ro_sub/locked.txt
+    chmod 0555 .agents/teamwork_preview_ro/ro_sub .agents/sentinel/ro_sub
+    OUT_RO=$(bash scripts/clean-teamwork-logs.sh)
+    [ "$OUT_RO" = "{}" ] || { echo "tests/test_runners.sh:1: error: Read-only directory cleanup stdout was not '{}': $OUT_RO"; exit 1; }
+    [ ! -d .agents/teamwork_preview_ro ] || { echo "tests/test_runners.sh:1: error: Read-only teamwork_preview_ro was not deleted"; exit 1; }
+    [ ! -d .agents/sentinel ] || { echo "tests/test_runners.sh:1: error: Read-only sentinel was not deleted"; exit 1; }
+
+    # 14l: Verify cleanup preserves parent git repository .agents when running in a nested subproject
+    PARENT_GIT_TMP=$(mktemp -d)
+    (
+        cd "$PARENT_GIT_TMP"
+        git init -q
+        mkdir -p .agents/teamwork_preview_parent
+        touch .agents/teamwork_preview_parent/parent_log.txt
+        mkdir -p subproject/.agents/teamwork_preview_child subproject/scripts
+        touch subproject/.agents/ORIGINAL_REQUEST.md
+        cp "$REPO_DIR/scripts/clean-teamwork-logs.sh" subproject/scripts/
+        chmod +x subproject/scripts/clean-teamwork-logs.sh
+        OUT_NESTED=$(cd subproject/.agents && echo '{"executionNum":6,"terminationReason":"model_stop","fullyIdle":true}' | eval "$CLEANUP_CMD")
+        [ "$OUT_NESTED" = "{}" ] || { echo "tests/test_runners.sh:1: error: Nested project cleanup stdout was not '{}': $OUT_NESTED"; exit 1; }
+        [ ! -d subproject/.agents/teamwork_preview_child ] || { echo "tests/test_runners.sh:1: error: Nested subproject preview was not deleted"; exit 1; }
+        [ -d .agents/teamwork_preview_parent ] || { echo "tests/test_runners.sh:1: error: Parent git repo preview was incorrectly deleted!"; exit 1; }
+    )
+    EXIT_PARENT_GIT=$?
+    rm -rf "$PARENT_GIT_TMP"
+    [ $EXIT_PARENT_GIT -eq 0 ] || exit 1
+
+    # 14m: Verify standalone script execution under dash (POSIX sh compatibility)
+    if command -v dash >/dev/null 2>&1; then
+        mkdir -p .agents/teamwork_preview_dash
+        touch .agents/teamwork_preview_dash/log.txt
+        OUT_DASH=$(dash scripts/clean-teamwork-logs.sh)
+        [ "$OUT_DASH" = "{}" ] || { echo "tests/test_runners.sh:1: error: Dash execution stdout was not '{}': $OUT_DASH"; exit 1; }
+        [ ! -d .agents/teamwork_preview_dash ] || { echo "tests/test_runners.sh:1: error: Dash execution did not delete teamwork_preview_dash"; exit 1; }
+    fi
 )
 EXIT_CLEANUP=$?
 rm -rf "$CLEANUP_TMP"

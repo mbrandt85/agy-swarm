@@ -10,5 +10,5 @@ lint:
 
 clean:
 	@echo "🧹 Cleaning up teamwork agent logs..."
-	@bash scripts/clean-teamwork-logs.sh >/dev/null 2>&1 || rm -rf .agents/teamwork_preview_* .agents/sentinel .agents/ORIGINAL_REQUEST.md
+	@bash scripts/clean-teamwork-logs.sh >/dev/null 2>&1 || (chmod -R u+w .agents/teamwork_preview_* .agents/sentinel 2>/dev/null || true; rm -rf .agents/teamwork_preview_* .agents/sentinel .agents/ORIGINAL_REQUEST.md)
 	@echo "✅ Cleanup complete!"

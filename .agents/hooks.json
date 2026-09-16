@@ -31,7 +31,7 @@
     "Stop": [
       {
         "type": "command",
-        "command": "sh -c 'ROOT=$(git rev-parse --show-toplevel 2>/dev/null || ( [ \"$(basename \"$PWD\")\" = \".agents\" ] && cd .. && pwd ) || pwd); if [ -x \"$ROOT/scripts/clean-teamwork-logs.sh\" ]; then \"$ROOT/scripts/clean-teamwork-logs.sh\"; elif [ -x \"../scripts/clean-teamwork-logs.sh\" ]; then ../scripts/clean-teamwork-logs.sh; elif [ -x \"./scripts/clean-teamwork-logs.sh\" ]; then ./scripts/clean-teamwork-logs.sh; else rm -rf \"$ROOT/.agents\"/teamwork_preview_* \"$ROOT/.agents/sentinel\" \"$ROOT/.agents/ORIGINAL_REQUEST.md\" 2>/dev/null || true; if [ \"$(basename \"$PWD\")\" = \".agents\" ]; then rm -rf ./teamwork_preview_* ./sentinel ./ORIGINAL_REQUEST.md 2>/dev/null || true; fi; echo \"{}\"; fi'",
+        "command": "sh -c 'ROOT=$( ( [ \"$(basename \"$PWD\")\" = \".agents\" ] && cd .. && pwd ) || ( [ -d \"./.agents\" ] && pwd ) || git rev-parse --show-toplevel 2>/dev/null || pwd); if [ -x \"$ROOT/scripts/clean-teamwork-logs.sh\" ]; then \"$ROOT/scripts/clean-teamwork-logs.sh\"; elif [ -x \"../scripts/clean-teamwork-logs.sh\" ]; then ../scripts/clean-teamwork-logs.sh; elif [ -x \"./scripts/clean-teamwork-logs.sh\" ]; then ./scripts/clean-teamwork-logs.sh; else chmod -R u+w \"$ROOT/.agents\"/teamwork_preview_* \"$ROOT/.agents/sentinel\" 2>/dev/null || true; rm -rf \"$ROOT/.agents\"/teamwork_preview_* \"$ROOT/.agents/sentinel\" \"$ROOT/.agents/ORIGINAL_REQUEST.md\" 2>/dev/null || true; if [ \"$(basename \"$PWD\")\" = \".agents\" ]; then chmod -R u+w ./teamwork_preview_* ./sentinel 2>/dev/null || true; rm -rf ./teamwork_preview_* ./sentinel ./ORIGINAL_REQUEST.md 2>/dev/null || true; fi; echo \"{}\"; fi'",
         "timeout": 30
       }
     ]
