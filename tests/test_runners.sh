@@ -408,15 +408,17 @@ rm -rf "$HOOK_TMP"
 [ $EXIT_HOOK -eq 0 ] || exit 1
 echo "  ✓ auto-commit-on-green-tests execution logic verified"
 
-# 13. Verify hooks.json contains teamwork-log-cleanup hook with Stop or PostInvocation
+# 13. Verify hooks.json contains teamwork-log-cleanup hook with Stop (and not PostInvocation)
 python3 -c "
 import json, sys
 conf = json.load(open('$REPO_DIR/.agents/hooks.json'))
 hook = conf.get('teamwork-log-cleanup') or conf.get('teamwork-cleanup')
 if not hook:
     sys.exit('Missing teamwork log cleanup hook in hooks.json')
-if 'Stop' not in hook and 'PostInvocation' not in hook:
-    sys.exit('teamwork log cleanup hook must define Stop or PostInvocation')
+if 'Stop' not in hook:
+    sys.exit('teamwork log cleanup hook must define Stop')
+if 'PostInvocation' in hook:
+    sys.exit('teamwork log cleanup hook must not define PostInvocation (it fires mid-session and deletes active directories)')
 " || {
     echo ".agents/hooks.json:1: error: teamwork-log-cleanup hook missing or invalid in hooks.json"
     exit 1
@@ -430,7 +432,7 @@ CLEANUP_TMP=$(mktemp -d)
     cd "$CLEANUP_TMP"
 
     # Extract the cleanup command from hooks.json
-    CLEANUP_CMD=$(python3 -c "import json; conf = json.load(open('$CLEANUP_TMP/.agents/hooks.json')); h = conf.get('teamwork-log-cleanup') or conf.get('teamwork-cleanup'); print((h.get('Stop') or h.get('PostInvocation'))[0]['command'])")
+    CLEANUP_CMD=$(python3 -c "import json; conf = json.load(open('$CLEANUP_TMP/.agents/hooks.json')); h = conf.get('teamwork-log-cleanup') or conf.get('teamwork-cleanup'); print(h['Stop'][0]['command'])")
 
     # 14a: Verify cleanup script exists and is executable
     [ -x "scripts/clean-teamwork-logs.sh" ] || {
@@ -474,6 +476,16 @@ CLEANUP_TMP=$(mktemp -d)
     [ ! -d .agents/teamwork_preview_dummy4 ] || { echo "tests/test_runners.sh:1: error: Fallback hook did not delete teamwork_preview_dummy4"; exit 1; }
     [ ! -d .agents/sentinel ] || { echo "tests/test_runners.sh:1: error: Fallback hook did not delete sentinel"; exit 1; }
     [ ! -f .agents/ORIGINAL_REQUEST.md ] || { echo "tests/test_runners.sh:1: error: Fallback hook did not delete ORIGINAL_REQUEST.md"; exit 1; }
+
+    # 14g: Verify standalone script execution from subdirectory resolves and cleans .agents
+    cp "$REPO_DIR/scripts/clean-teamwork-logs.sh" scripts/
+    mkdir -p .agents/teamwork_preview_dummy5 .agents/sentinel
+    touch .agents/ORIGINAL_REQUEST.md
+    OUT_SUBDIR=$(cd scripts && bash clean-teamwork-logs.sh)
+    [ "$OUT_SUBDIR" = "{}" ] || { echo "tests/test_runners.sh:1: error: Subdirectory script stdout was not '{}': $OUT_SUBDIR"; exit 1; }
+    [ ! -d .agents/teamwork_preview_dummy5 ] || { echo "tests/test_runners.sh:1: error: Subdirectory execution did not delete teamwork_preview_dummy5"; exit 1; }
+    [ ! -d .agents/sentinel ] || { echo "tests/test_runners.sh:1: error: Subdirectory execution did not delete sentinel"; exit 1; }
+    [ ! -f .agents/ORIGINAL_REQUEST.md ] || { echo "tests/test_runners.sh:1: error: Subdirectory execution did not delete ORIGINAL_REQUEST.md"; exit 1; }
 )
 EXIT_CLEANUP=$?
 rm -rf "$CLEANUP_TMP"

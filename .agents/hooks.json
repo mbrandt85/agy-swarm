@@ -34,13 +34,6 @@
         "command": "sh -c 'ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd); if [ -x \"$ROOT/scripts/clean-teamwork-logs.sh\" ]; then \"$ROOT/scripts/clean-teamwork-logs.sh\"; else rm -rf \"$ROOT/.agents\"/teamwork_preview_* \"$ROOT/.agents/sentinel\" \"$ROOT/.agents/ORIGINAL_REQUEST.md\" 2>/dev/null || true; echo \"{}\"; fi'",
         "timeout": 30
       }
-    ],
-    "PostInvocation": [
-      {
-        "type": "command",
-        "command": "sh -c 'ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd); if [ -x \"$ROOT/scripts/clean-teamwork-logs.sh\" ]; then \"$ROOT/scripts/clean-teamwork-logs.sh\"; else rm -rf \"$ROOT/.agents\"/teamwork_preview_* \"$ROOT/.agents/sentinel\" \"$ROOT/.agents/ORIGINAL_REQUEST.md\" 2>/dev/null || true; echo \"{}\"; fi'",
-        "timeout": 30
-      }
     ]
   }
 }
